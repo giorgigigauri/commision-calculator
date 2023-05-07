@@ -16,6 +16,7 @@ class PrivateProcessor extends CommissionProcessor
 
     public function calculate(): float
     {
+        $rates = Currency::GetRates();
         $commission = 0;
         if ($this->transaction->transactionType == TransactionType::WITHDRAW) {
 
@@ -31,19 +32,18 @@ class PrivateProcessor extends CommissionProcessor
                 ->each(function (&$item) {
                     $item->amount = Currency::convertToEur($item->amount, $item->currency);
                 });
-            $this->transaction->amount = Currency::convertToEur($this->transaction->amount, $this->transaction->currency);
+            $transactionAmount = Currency::convertToEur($this->transaction->amount, $this->transaction->currency);
             $sum = $weeklyTrs->sum('amount');
 
-            if($weeklyTrs->count() > 3 || $sum - $this->transaction->amount >= 1000) {
+            if($weeklyTrs->count() > 3) {
                 $commission = $this->transaction->amount * 0.003;
+
             } else {
-                if($sum - 1000 > 0) {
-                    $commission = ($sum - 1000) * 0.003;
-                }
-            }
-            if($this->transaction->currency->name != Currency::EUR->name) {
-                $rates = Currency::GetRates();
-                $commission = $commission * $rates[$this->transaction->currency->name];
+                $limit = max(0,1000 - $sum + $transactionAmount);
+                $currencyLimit = $limit * $rates[$this->transaction->currency->name];
+
+                $taxableAmount = max(0,$this->transaction->amount - $currencyLimit);
+                $commission = $taxableAmount * 0.003;
             }
             return $commission;
         } elseif ($this->transaction->transactionType == TransactionType::DEPOSIT) {

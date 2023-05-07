@@ -42,11 +42,10 @@ class CalculateCommissionTest extends TestCase
             8612
         ];
 
-
-
         $commissions = (new CalculateCommissionAction())->execute();
         $this->assertInstanceOf(Collection::class, $commissions);
         foreach($commissions as $index => $transaction) {
+            //dump([$transactionCommissions[$index], $transaction->commission]);
             $this->assertEquals($transactionCommissions[$index], $transaction->commission);
         }
     }
